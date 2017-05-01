@@ -13,6 +13,11 @@ from video import create_capture
 from common import clock, draw_str
 Sample_Num = 64
 
+xx1 = lambda x1, x2: int((x1+x2)/2-(x2-x1)*0.1)
+xx2 = lambda x1, x2: int((x1+x2)/2+(x2-x1)*0.1)
+yy1 = lambda y1, y2: int(y1+(y2-y1)*0.1)
+yy2 = lambda y1, y2: int(y1+(y2-y1)*0.2)
+
 def detect(img, cascade):
     rects = cascade.detectMultiScale(img, scaleFactor=1.3, minNeighbors=4, minSize=(30, 30),
                                      flags=cv2.CASCADE_SCALE_IMAGE)
@@ -24,7 +29,9 @@ def detect(img, cascade):
 def draw_rects(img, rects, color):
     for x1, y1, x2, y2 in rects:
         cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-        cv2.rectangle(img, (int((x1+x2)/2 - (x2-x1)*0.1), int(y1+(y2-y1)*0.1)), ( int((x1+x2)/2+(x2-x1)*0.1), int(y1+(y2-y1)*0.2)), (0, 0, 255), 2)
+        cv2.rectangle(img, (xx1(x1,x2), yy1(y1,y2)),
+                           (xx2(x1,x2), yy2(y1,y2)),
+                           (0, 0, 255), 2)
 
 if __name__ == '__main__':
     import sys, getopt
@@ -53,8 +60,9 @@ if __name__ == '__main__':
         vis = img.copy()
         if len(rects) > 0:
             x1, y1, x2, y2 = rects[0]
-            xx1, yy1, xx2, yy2 = int((x1+x2)/2 - (x2-x1)*0.1), int(y1+(y2-y1)*0.1),  int((x1+x2)/2+(x2-x1)*0.1), int(y1+(y2-y1)*0.2)
-            gg = img[x1:x2, y1:y2, 1]
+            xxx1, yyy1, xxx2, yyy2 = xx1(x1,x2), yy1(y1,y2),  \
+                                     xx2(x1,x2), yy2(y1,y2)
+            gg = img[xxx1:xxx2, yyy1:yyy2, 1]
             if q.full():
                 q.get()
                 q.put(gg)
@@ -69,7 +77,6 @@ if __name__ == '__main__':
         dt = clock() - t
         tf = 0
         ft = 1000.0 / (dt * 1000 + 10+5)
-
         if q3.full():
             q3.get(); q3.put(ft)
         else:
