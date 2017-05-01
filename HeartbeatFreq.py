@@ -11,10 +11,10 @@ import Queue
 # local modules
 from video import create_capture
 from common import clock, draw_str
-Sample_Num = 64
+Sample_Num = 128
 
-xx1 = lambda x1, x2: int((x1+x2)/2-(x2-x1)*0.1)
-xx2 = lambda x1, x2: int((x1+x2)/2+(x2-x1)*0.1)
+xx1 = lambda x1, x2: int((x1+x2)/2-(x2-x1)*0.2)
+xx2 = lambda x1, x2: int((x1+x2)/2+(x2-x1)*0.2)
 yy1 = lambda y1, y2: int(y1+(y2-y1)*0.1)
 yy2 = lambda y1, y2: int(y1+(y2-y1)*0.2)
 
@@ -36,9 +36,9 @@ def draw_rects(img, rects, color):
 if __name__ == '__main__':
     import sys, getopt
 
-    q = Queue.Queue(maxsize=Sample_Num)
-    q2 = Queue.Queue(maxsize=10)
-    q3 = Queue.Queue(maxsize=10)
+    q_data = Queue.Queue(maxsize=Sample_Num)
+    q_heart = Queue.Queue(maxsize=10)
+    q_samplefreq = Queue.Queue(maxsize=10)
 
     args, video_src = getopt.getopt(sys.argv[1:], '', ['cascade=', 'nested-cascade='])
     try:
@@ -63,38 +63,38 @@ if __name__ == '__main__':
             xxx1, yyy1, xxx2, yyy2 = xx1(x1,x2), yy1(y1,y2),  \
                                      xx2(x1,x2), yy2(y1,y2)
             gg = img[xxx1:xxx2, yyy1:yyy2, 1]
-            if q.full():
-                q.get()
-                q.put(gg)
+            if q_data.full():
+                q_data.get()
+                q_data.put(gg)
             else:
-                q.put(gg)
+                q_data.put(gg)
 
-        if len(rects) == 0 and not q.empty():
-            q.get()
+        if len(rects) == 0 and not q_data.empty():
+            q_data.get()
 
-        zz = map(lambda x: np.sum(x.ravel()), np.array(q.queue))
+        zz = map(lambda x: np.sum(x.ravel()), np.array(q_data.queue))
         draw_rects(vis, rects, (0, 255, 0))
         dt = clock() - t
         tf = 0
         ft = 1000.0 / (dt * 1000 + 10+5)
-        if q3.full():
-            q3.get(); q3.put(ft)
+        if q_samplefreq.full():
+            q_samplefreq.get(); q_samplefreq.put(ft)
         else:
-            q3.put(ft)
-        ft = np.average(np.array(q3.queue))
+            q_samplefreq.put(ft)
+        ft = np.average(np.array(q_samplefreq.queue))
 
-        if q.full():
+        if q_data.full():
             frez = np.abs(np.fft.fft(zz, Sample_Num))
             frez[0:20] = 0
             tf = frez[0:len(frez)/2]
             tf = np.where(tf == max(tf))
             tf = tf[0]*ft/Sample_Num*10
-            if q2.full():
-                q2.get()
-                q2.put(tf)
+            if q_heart.full():
+                q_heart.get()
+                q_heart.put(tf)
             else:
-                q2.put(tf)
-            tf = np.average(np.array(q2.queue))
+                q_heart.put(tf)
+            tf = np.average(np.array(q_heart.queue))
         draw_str(vis, (20, 20), 'Sample Freq: %.0f Heartbeat Freq: %.0f Sample Num: %d '%(ft,tf, len(zz)))
         cv2.imshow('Heartbeat frequency', vis)
         if 0xFF & cv2.waitKey(5) == 27:
